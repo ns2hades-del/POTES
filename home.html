@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Accueil - POTES</title>
+    <link rel="icon" href="logo-dark.png">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="container">
+    <h2>Accueil</h2>
+
+    <h3>Discussion générale</h3>
+    <a href="global-chat.html">
+        <button>Ouvrir le chat général</button>
+    </a>
+
+    <h3>Utilisateurs</h3>
+    <div id="users-list"></div>
+
+    <br>
+
+    <a href="profile.html">
+        <button>Mon profil</button>
+    </a>
+</div>
+
+<script>
+    const users = JSON.parse(localStorage.getItem("allUsers")) || [];
+    const usersList = document.getElementById("users-list");
+    const currentUser = localStorage.getItem("username");
+
+    users.forEach(user => {
+        if (user !== currentUser) {
+            const btn = document.createElement("button");
+            btn.innerText = user;
+            btn.onclick = () => {
+                localStorage.setItem("chatUser", user);
+                window.location.href = "chat.html";
+            };
+            usersList.appendChild(btn);
+        }
+    });
+</script>
+
+</body>
+</html>

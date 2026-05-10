@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inscription - POTES</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="container">
+        <img src="logo-light.png" alt="Logo POTES" width="120">
+
+        <h2>Créer un compte</h2>
+
+        <form id="registerForm">
+            <input type="text" id="username" placeholder="Pseudo" required>
+            <input type="password" id="password" placeholder="Mot de passe" required>
+
+            <button type="submit">S'inscrire</button>
+        </form>
+
+        <p>Déjà inscrit ? <a href="login.html">Se connecter</a></p>
+    </div>
+
+    <script>
+        document.getElementById("registerForm").addEventListener("submit", function(e) {
+            e.preventDefault();
+
+            const username = document.getElementById("username").value;
+            const password = document.getElementById("password").value;
+
+            localStorage.setItem("username", username);
+            localStorage.setItem("password", password);
+
+            alert("Compte créé avec succès !");
+            window.location.href = "login.html";
+        });
+    </script>
+
+</body>
+</html>

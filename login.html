@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connexion - POTES</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="container">
+        <img src="logo-light.png" alt="Logo POTES" width="120">
+
+        <h2>Connexion</h2>
+
+        <form id="loginForm">
+            <input type="text" id="username" placeholder="Pseudo" required>
+            <input type="password" id="password" placeholder="Mot de passe" required>
+
+            <button type="submit">Se connecter</button>
+        </form>
+
+        <p>Pas encore de compte ? <a href="register.html">Créer un compte</a></p>
+    </div>
+
+    <script>
+        document.getElementById("loginForm").addEventListener("submit", function(e) {
+            e.preventDefault();
+
+            const username = document.getElementById("username").value;
+            const savedUsername = localStorage.getItem("username");
+
+            if (username === savedUsername) {
+                window.location.href = "home.html";
+            } else {
+                alert("Utilisateur introuvable");
+            }
+        });
+    </script>
+
+</body>
+</html>
