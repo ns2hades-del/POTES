@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Chat privé - POTES</title>
+    <title>Groupe - POTES</title>
     <link rel="icon" href="logo-dark.png">
     <link rel="stylesheet" href="style.css">
 </head>
@@ -14,12 +14,12 @@
 
 <div class="container">
     <div class="card">
-        <h2 id="chat-title">Chat privé</h2>
+        <h2 id="group-title">Groupe</h2>
 
         <div id="messages"></div>
 
         <input type="text" id="messageInput" placeholder="Écris un message">
-        <button onclick="sendMessage()">Envoyer</button>
+        <button onclick="sendGroupMessage()">Envoyer</button>
 
         <br><br>
 
@@ -35,20 +35,20 @@
 const socket = io();
 
 const currentUser = localStorage.getItem("username");
-const targetUser = localStorage.getItem("chatUser");
+const groupName = localStorage.getItem("groupName");
 
-document.getElementById("chat-title").innerText =
-    "Chat avec " + targetUser;
+document.getElementById("group-title").innerText =
+    "Groupe : " + groupName;
 
-function sendMessage() {
+function sendGroupMessage() {
     const input = document.getElementById("messageInput");
 
     if (!input.value.trim()) return;
 
     const msg = {
-        type: "private",
+        type: "group",
+        group: groupName,
         from: currentUser,
-        to: targetUser,
         text: input.value
     };
 
@@ -61,11 +61,8 @@ socket.on("load messages", messages => {
 
     messages.forEach(msg => {
         if (
-            msg.type === "private" &&
-            (
-                (msg.from === currentUser && msg.to === targetUser) ||
-                (msg.from === targetUser && msg.to === currentUser)
-            )
+            msg.type === "group" &&
+            msg.group === groupName
         ) {
             displayMessage(msg);
         }
@@ -74,11 +71,8 @@ socket.on("load messages", messages => {
 
 socket.on("chat message", msg => {
     if (
-        msg.type === "private" &&
-        (
-            (msg.from === currentUser && msg.to === targetUser) ||
-            (msg.from === targetUser && msg.to === currentUser)
-        )
+        msg.type === "group" &&
+        msg.group === groupName
     ) {
         displayMessage(msg);
     }
@@ -93,7 +87,10 @@ function displayMessage(msg) {
             : "message-other";
 
     div.innerHTML =
-        `<div class="message-bubble">${msg.text}</div>`;
+        `<div class="message-bubble">
+            <strong>${msg.from}</strong><br>
+            ${msg.text}
+        </div>`;
 
     document.getElementById("messages").appendChild(div);
 }
