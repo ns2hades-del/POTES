@@ -9,90 +9,137 @@ body {
     min-height: 100vh;
     padding: 20px;
     color: white;
-    background-color: #0a0f1d;
+    background:
+        radial-gradient(circle at top left,
+        rgba(0,191,255,0.18),
+        transparent 35%),
+
+        radial-gradient(circle at bottom right,
+        rgba(255,80,80,0.12),
+        transparent 30%),
+
+        linear-gradient(135deg, #030712, #0f172a, #111827);
+
     background-image:
-        linear-gradient(rgba(0,191,255,0.07) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(0,191,255,0.07) 1px, transparent 1px),
+        radial-gradient(circle at top left,
+        rgba(0,191,255,0.18),
+        transparent 35%),
+
+        radial-gradient(circle at bottom right,
+        rgba(255,80,80,0.12),
+        transparent 30%),
+
         url("logo-dark.png");
-    background-size: 35px 35px, 35px 35px, 280px;
-    background-position: 0 0, 0 0, center;
-    background-repeat: repeat, repeat, no-repeat;
+
+    background-repeat: no-repeat, no-repeat, no-repeat;
+    background-position: top left, bottom right, center;
+    background-size: cover, cover, 260px;
     background-attachment: fixed;
 }
 
 .container {
-    max-width: 900px;
+    max-width: 950px;
     margin: auto;
-}
-
-.card {
-    background: rgba(15, 23, 42, 0.92);
-    padding: 25px;
-    border-radius: 20px;
-    margin-bottom: 20px;
-    box-shadow: 0 8px 30px rgba(0,0,0,0.25);
 }
 
 .logo-title {
     text-align: center;
     font-size: 3rem;
-    color: #00bfff;
-    margin-bottom: 20px;
     font-weight: bold;
-    letter-spacing: 6px;
+    letter-spacing: 8px;
+    color: #38bdf8;
+    margin-bottom: 25px;
+    text-shadow:
+        0 0 12px rgba(56,189,248,0.45),
+        0 0 30px rgba(56,189,248,0.2);
+}
+
+.card {
+    background: rgba(15, 23, 42, 0.88);
+    backdrop-filter: blur(12px);
+    padding: 25px;
+    border-radius: 24px;
+    margin-bottom: 20px;
+    border: 1px solid rgba(56,189,248,0.12);
+    box-shadow:
+        0 12px 40px rgba(0,0,0,0.35),
+        0 0 18px rgba(56,189,248,0.05);
+}
+
+h2 {
+    margin-bottom: 15px;
+    color: #e2e8f0;
 }
 
 input {
     width: 100%;
     padding: 14px;
-    border-radius: 12px;
-    border: none;
     margin: 8px 0;
-    background: #1e293b;
+    border: none;
+    border-radius: 14px;
+    outline: none;
+    background: rgba(30,41,59,0.95);
     color: white;
+    font-size: 15px;
+    border: 1px solid rgba(56,189,248,0.08);
+}
+
+input::placeholder {
+    color: #94a3b8;
 }
 
 button {
     padding: 12px 18px;
     border: none;
-    border-radius: 12px;
-    background: linear-gradient(135deg, #00bfff, #0077ff);
-    color: white;
+    border-radius: 14px;
     cursor: pointer;
     font-weight: bold;
-    margin-top: 8px;
+    margin-top: 10px;
+    margin-right: 8px;
+    background: linear-gradient(135deg, #0ea5e9, #2563eb);
+    color: white;
+    transition: all 0.25s ease;
+    box-shadow: 0 4px 16px rgba(14,165,233,0.25);
 }
 
 button:hover {
-    opacity: 0.9;
+    transform: translateY(-2px) scale(1.02);
+    box-shadow:
+        0 8px 20px rgba(14,165,233,0.35);
 }
 
 #messages {
-    height: 350px;
+    height: 360px;
     overflow-y: auto;
-    background: rgba(255,255,255,0.03);
     padding: 15px;
-    border-radius: 15px;
+    border-radius: 16px;
+    background: rgba(255,255,255,0.03);
     margin-bottom: 15px;
 }
 
 .message {
-    margin-bottom: 12px;
     padding: 12px;
+    border-radius: 14px;
+    margin-bottom: 10px;
     background: rgba(255,255,255,0.05);
-    border-radius: 12px;
+    border-left: 3px solid rgba(56,189,248,0.45);
+    word-wrap: break-word;
 }
 
 .user-card {
-    padding: 12px;
-    border-radius: 12px;
-    background: rgba(255,255,255,0.04);
+    padding: 14px;
+    border-radius: 16px;
     margin-bottom: 10px;
+    background: rgba(255,255,255,0.04);
     cursor: pointer;
+    transition: 0.25s ease;
+    border: 1px solid transparent;
 }
 
 .user-card:hover {
-    background: rgba(0,191,255,0.08);
+    background: rgba(56,189,248,0.08);
+    border-color: rgba(56,189,248,0.18);
+    transform: translateX(4px);
 }
 
 .avatar {
@@ -100,5 +147,33 @@ button:hover {
     height: 55px;
     border-radius: 50%;
     object-fit: cover;
-    margin-right: 10px;
+    border: 2px solid rgba(56,189,248,0.3);
+}
+
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(56,189,248,0.3);
+    border-radius: 20px;
+}
+
+@media (max-width: 768px) {
+    .container {
+        max-width: 100%;
+    }
+
+    .logo-title {
+        font-size: 2.2rem;
+    }
+
+    .card {
+        padding: 18px;
+    }
+
+    button {
+        width: 100%;
+        margin-right: 0;
+    }
 }

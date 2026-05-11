@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Chat Groupe</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+
+<div class="container">
+    <h1 class="logo-title">POTES</h1>
+
+    <div class="card">
+        <h2 id="groupTitle"></h2>
+
+        <div id="messages"></div>
+
+        <input id="messageInput" placeholder="Écrire message">
+        <button onclick="sendMessage()">Envoyer</button>
+    </div>
+
+    <div class="card">
+        <button onclick="window.location.href='group.html'">
+            Retour groupes
+        </button>
+    </div>
+</div>
+
+<script>
+const socket = io();
+
+const group = localStorage.getItem("activeGroup");
+const username = localStorage.getItem("username");
+
+document.getElementById("groupTitle").innerText =
+    "Groupe : " + group;
+
+socket.on("chat message", msg => {
+    if (msg.group !== group) return;
+
+    const div = document.createElement("div");
+    div.className = "message";
+    div.innerHTML =
+        "<strong>" + msg.from + ":</strong> " + msg.text;
+
+    document.getElementById("messages")
+        .appendChild(div);
+});
+
+function sendMessage() {
+    const input = document.getElementById("messageInput");
+    const text = input.value.trim();
+
+    if (!text) return;
+
+    socket.emit("chat message", {
+        from: username,
+        group: group,
+        text: text
+    });
+
+    input.value = "";
+}
+</script>
+
+</body>
+</html>

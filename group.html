@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <title>Groupes</title>
     <link rel="stylesheet" href="style.css">
-    <script src="/socket.io/socket.io.js"></script>
 </head>
 <body>
 
@@ -12,61 +11,67 @@
     <h1 class="logo-title">POTES</h1>
 
     <div class="card">
-        <h2>Créer ou rejoindre un groupe</h2>
+        <h2>Créer un groupe</h2>
 
         <input id="groupName" placeholder="Nom du groupe">
-        <button onclick="createGroup()">Créer / Rejoindre</button>
+        <button onclick="createGroup()">Créer</button>
     </div>
 
     <div class="card">
-        <h2 id="currentGroup"></h2>
-        <div id="messages"></div>
+        <h2>Groupes disponibles</h2>
+        <div id="groups"></div>
+    </div>
 
-        <input id="messageInput" placeholder="Message groupe">
-        <button onclick="sendGroupMessage()">Envoyer</button>
+    <div class="card">
+        <button onclick="window.location.href='home.html'">
+            Retour accueil
+        </button>
     </div>
 </div>
 
 <script>
-const socket = io();
-let activeGroup = "";
+async function loadGroups() {
+    const res = await fetch("/groups");
+    const groups = await res.json();
+
+    const container = document.getElementById("groups");
+    container.innerHTML = "";
+
+    groups.forEach(group => {
+        const div = document.createElement("div");
+        div.className = "user-card";
+        div.innerHTML = `<strong>${group.name}</strong>`;
+
+        div.onclick = () => {
+            localStorage.setItem("activeGroup", group.name);
+            window.location.href = "group-chat.html";
+        };
+
+        container.appendChild(div);
+    });
+}
 
 async function createGroup() {
-    const groupName = document.getElementById("groupName").value.trim();
+    const groupName = document
+        .getElementById("groupName")
+        .value
+        .trim();
+
     if (!groupName) return;
 
     await fetch("/create-group", {
         method: "POST",
-        headers: {"Content-Type":"application/json"},
+        headers: {
+            "Content-Type": "application/json"
+        },
         body: JSON.stringify({ groupName })
     });
 
-    activeGroup = groupName;
-    document.getElementById("currentGroup").innerText =
-        "Groupe : " + groupName;
+    document.getElementById("groupName").value = "";
+    loadGroups();
 }
 
-socket.on("chat message", msg => {
-    if (msg.group !== activeGroup) return;
-
-    const div = document.createElement("div");
-    div.className = "message";
-    div.innerHTML = "<strong>" + msg.from + ":</strong> " + msg.text;
-    document.getElementById("messages").appendChild(div);
-});
-
-function sendGroupMessage() {
-    const text = document.getElementById("messageInput").value.trim();
-    if (!text || !activeGroup) return;
-
-    socket.emit("chat message", {
-        from: localStorage.getItem("username"),
-        group: activeGroup,
-        text
-    });
-
-    document.getElementById("messageInput").value = "";
-}
+loadGroups();
 </script>
 
 </body>

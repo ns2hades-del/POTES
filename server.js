@@ -1,7 +1,6 @@
 const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
-const path = require("path");
 const multer = require("multer");
 const dotenv = require("dotenv");
 const { createClient } = require("@supabase/supabase-js");
@@ -16,7 +15,9 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(__dirname));
 
-const upload = multer({ storage: multer.memoryStorage() });
+const upload = multer({
+    storage: multer.memoryStorage()
+});
 
 const supabase = createClient(
     process.env.SUPABASE_URL,
@@ -28,7 +29,10 @@ app.get("/users", async (req, res) => {
         .from("users")
         .select("*");
 
-    if (error) return res.json([]);
+    if (error) {
+        console.log(error);
+        return res.json([]);
+    }
 
     res.json(data);
 });
@@ -60,6 +64,7 @@ app.post("/register", async (req, res) => {
             ]);
 
         if (error) {
+            console.log(error);
             return res.status(500).json({
                 error: error.message
             });
@@ -91,49 +96,94 @@ app.post("/login", async (req, res) => {
         });
     }
 
-    res.json({ success: true });
+    res.json({
+        success: true,
+        user: data
+    });
+});
+
+app.get("/groups", async (req, res) => {
+    const { data, error } = await supabase
+        .from("groups")
+        .select("*");
+
+    if (error) {
+        console.log(error);
+        return res.json([]);
+    }
+
+    res.json(data);
 });
 
 app.post("/create-group", async (req, res) => {
     const { groupName } = req.body;
 
-    await supabase
+    const { error } = await supabase
         .from("groups")
-        .insert([{ name: groupName }]);
+        .insert([
+            {
+                name: groupName
+            }
+        ]);
+
+    if (error) {
+        console.log(error);
+        return res.status(500).json({
+            error: error.message
+        });
+    }
 
     res.json({ success: true });
 });
 
 app.post("/upload-avatar", upload.single("avatar"), async (req, res) => {
-    const username = req.body.username;
-    const file = req.file;
+    try {
+        const username = req.body.username;
+        const file = req.file;
 
-    if (!file) {
-        return res.status(400).json({
-            error: "Aucun fichier"
+        if (!file) {
+            return res.status(400).json({
+                error: "Aucun fichier"
+            });
+        }
+
+        const fileName = `${username}-${Date.now()}`;
+
+        const { error } = await supabase.storage
+            .from("avatars")
+            .upload(fileName, file.buffer, {
+                contentType: file.mimetype
+            });
+
+        if (error) {
+            console.log(error);
+            return res.status(500).json({
+                error: error.message
+            });
+        }
+
+        const {
+            data: { publicUrl }
+        } = supabase.storage
+            .from("avatars")
+            .getPublicUrl(fileName);
+
+        await supabase
+            .from("users")
+            .update({ avatar: publicUrl })
+            .eq("username", username);
+
+        res.json({
+            success: true,
+            avatar: publicUrl
+        });
+
+    } catch (err) {
+        console.log(err);
+        res.status(500).json({
+            error: "Erreur upload"
         });
     }
-
-    const fileName = `${username}-${Date.now()}.png`;
-
-    await supabase.storage
-        .from("avatars")
-        .upload(fileName, file.buffer, {
-            contentType: file.mimetype
-        });
-
-    const {
-        data: { publicUrl }
-    } = supabase.storage
-        .from("avatars")
-        .getPublicUrl(fileName);
-
-    await supabase
-        .from("users")
-        .update({ avatar: publicUrl })
-        .eq("username", username);
-
-    res.json({ avatar: publicUrl });
 });
 
 io.on("connection", socket => {
