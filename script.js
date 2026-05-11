@@ -1,52 +1,70 @@
-const socket = io();
+async function register() {
+    const username = document.getElementById("username").value.trim();
+    const password = document.getElementById("password").value.trim();
 
-const currentUser = localStorage.getItem("username");
-const chatUser = localStorage.getItem("chatUser");
+    if (!username || !password) {
+        alert("Remplis tous les champs");
+        return;
+    }
 
-document.getElementById("chatTitle").innerText =
-    "Discussion avec " + chatUser;
+    try {
+        const response = await fetch("/register", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                username,
+                password
+            })
+        });
 
-const messagesContainer = document.getElementById("messages");
+        const data = await response.json();
 
-function sendMessage() {
-    const input = document.getElementById("messageInput");
+        if (data.success) {
+            alert("Compte créé avec succès");
+        } else {
+            alert(data.error || "Erreur inscription");
+        }
 
-    if (input.value.trim() === "") return;
-
-    const message = {
-        from: currentUser,
-        to: chatUser,
-        text: input.value
-    };
-
-    socket.emit("chat message", message);
-    input.value = "";
+    } catch (error) {
+        console.error(error);
+        alert("Erreur serveur");
+    }
 }
 
-socket.on("load messages", (messages) => {
-    messagesContainer.innerHTML = "";
+async function login() {
+    const username = document.getElementById("username").value.trim();
+    const password = document.getElementById("password").value.trim();
 
-    messages.forEach(msg => {
-        if (
-            (msg.from === currentUser && msg.to === chatUser) ||
-            (msg.from === chatUser && msg.to === currentUser)
-        ) {
-            displayMessage(msg);
-        }
-    });
-});
-
-socket.on("chat message", (msg) => {
-    if (
-        (msg.from === currentUser && msg.to === chatUser) ||
-        (msg.from === chatUser && msg.to === currentUser)
-    ) {
-        displayMessage(msg);
+    if (!username || !password) {
+        alert("Remplis tous les champs");
+        return;
     }
-});
 
-function displayMessage(msg) {
-    const item = document.createElement("p");
-    item.innerHTML = `<strong>${msg.from} :</strong> ${msg.text}`;
-    messagesContainer.appendChild(item);
+    try {
+        const response = await fetch("/login", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                username,
+                password
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            localStorage.setItem("username", username);
+            window.location.href = "home.html";
+        } else {
+            alert(data.error || "Connexion refusée");
+        }
+
+    } catch (error) {
+        console.error(error);
+        alert("Erreur serveur");
+    }
 }

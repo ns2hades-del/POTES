@@ -2,46 +2,83 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Accueil - POTES</title>
+    <title>POTES - Accueil</title>
     <link rel="icon" href="logo-dark.png">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
 <div class="container">
-    <h2>Accueil</h2>
 
-    <h3>Discussion générale</h3>
-    <a href="global-chat.html">
-        <button>Ouvrir le chat général</button>
-    </a>
+    <h1 class="logo-title">POTES</h1>
 
-    <h3>Utilisateurs</h3>
-    <div id="users-list"></div>
+    <div class="card">
+        <h2>Navigation</h2>
 
-    <br>
+        <button onclick="window.location.href='profile.html'">
+            Mon profil
+        </button>
 
-    <a href="profile.html">
-        <button>Mon profil</button>
-    </a>
+        <button onclick="window.location.href='group.html'">
+            Groupes
+        </button>
+
+        <button onclick="logout()">
+            Déconnexion
+        </button>
+    </div>
+
+    <div class="card">
+        <h2>Utilisateurs disponibles</h2>
+        <div id="users"></div>
+    </div>
+
 </div>
 
 <script>
-    const users = JSON.parse(localStorage.getItem("allUsers")) || [];
-    const usersList = document.getElementById("users-list");
-    const currentUser = localStorage.getItem("username");
+const currentUser = localStorage.getItem("username");
+
+if (!currentUser) {
+    window.location.href = "index.html";
+}
+
+function logout() {
+    localStorage.clear();
+    window.location.href = "index.html";
+}
+
+fetch("/users")
+.then(res => res.json())
+.then(users => {
+    const usersContainer = document.getElementById("users");
+    usersContainer.innerHTML = "";
 
     users.forEach(user => {
-        if (user !== currentUser) {
-            const btn = document.createElement("button");
-            btn.innerText = user;
-            btn.onclick = () => {
-                localStorage.setItem("chatUser", user);
-                window.location.href = "chat.html";
-            };
-            usersList.appendChild(btn);
-        }
+        if (user.username === currentUser) return;
+
+        const div = document.createElement("div");
+        div.className = "user-card";
+
+        div.innerHTML = `
+            <div style="display:flex;align-items:center;gap:12px;">
+                <img
+                    src="${user.avatar || 'logo-dark.png'}"
+                    class="avatar"
+                >
+                <div>
+                    <strong>${user.username}</strong>
+                </div>
+            </div>
+        `;
+
+        div.onclick = () => {
+            localStorage.setItem("chatUser", user.username);
+            window.location.href = "chat.html";
+        };
+
+        usersContainer.appendChild(div);
     });
+});
 </script>
 
 </body>

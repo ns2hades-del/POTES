@@ -1,123 +1,149 @@
 const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
-const fs = require("fs");
+const path = require("path");
+const multer = require("multer");
+const dotenv = require("dotenv");
+const { createClient } = require("@supabase/supabase-js");
+
+dotenv.config();
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-app.use(express.static(__dirname));
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(express.static(__dirname));
 
-const usersFile = "users.json";
-const messagesFile = "messages.json";
-const groupsFile = "groups.json";
+const upload = multer({ storage: multer.memoryStorage() });
 
-function loadData(file) {
+const supabase = createClient(
+    process.env.SUPABASE_URL,
+    process.env.SUPABASE_KEY
+);
+
+app.get("/users", async (req, res) => {
+    const { data, error } = await supabase
+        .from("users")
+        .select("*");
+
+    if (error) return res.json([]);
+
+    res.json(data);
+});
+
+app.post("/register", async (req, res) => {
     try {
-        return JSON.parse(fs.readFileSync(file));
-    } catch {
-        return [];
+        const { username, password } = req.body;
+
+        const { data: existing } = await supabase
+            .from("users")
+            .select("*")
+            .eq("username", username);
+
+        if (existing && existing.length > 0) {
+            return res.status(400).json({
+                error: "Pseudo déjà pris"
+            });
+        }
+
+        const { error } = await supabase
+            .from("users")
+            .insert([
+                {
+                    username,
+                    password,
+                    bio: "",
+                    avatar: ""
+                }
+            ]);
+
+        if (error) {
+            return res.status(500).json({
+                error: error.message
+            });
+        }
+
+        res.json({ success: true });
+
+    } catch (err) {
+        console.log(err);
+        res.status(500).json({
+            error: "Erreur serveur"
+        });
     }
-}
-
-function saveData(file, data) {
-    fs.writeFileSync(file, JSON.stringify(data, null, 2));
-}
-
-let users = loadData(usersFile);
-let messages = loadData(messagesFile);
-let groups = loadData(groupsFile);
-
-let onlineUsers = [];
-
-app.get("/users", (req, res) => {
-    res.json(users);
 });
 
-app.get("/groups", (req, res) => {
-    res.json(groups);
-});
-
-app.post("/register", (req, res) => {
+app.post("/login", async (req, res) => {
     const { username, password } = req.body;
 
-    const existingUser = users.find(
-        user => user.username === username
-    );
+    const { data } = await supabase
+        .from("users")
+        .select("*")
+        .eq("username", username)
+        .eq("password", password)
+        .single();
 
-    if (existingUser) {
-        return res.json({
-            success: false,
-            message: "Utilisateur déjà existant"
+    if (!data) {
+        return res.status(400).json({
+            error: "Identifiants incorrects"
         });
     }
 
-    const newUser = {
-        username,
-        password,
-        bio: "",
-        avatar: ""
-    };
-
-    users.push(newUser);
-    saveData(usersFile, users);
-
     res.json({ success: true });
 });
 
-app.post("/login", (req, res) => {
-    const { username, password } = req.body;
-
-    const user = users.find(
-        user =>
-            user.username === username &&
-            user.password === password
-    );
-
-    if (user) {
-        res.json({ success: true });
-    } else {
-        res.json({ success: false });
-    }
-});
-
-app.post("/create-group", (req, res) => {
+app.post("/create-group", async (req, res) => {
     const { groupName } = req.body;
 
-    if (!groups.includes(groupName)) {
-        groups.push(groupName);
-        saveData(groupsFile, groups);
-    }
+    await supabase
+        .from("groups")
+        .insert([{ name: groupName }]);
 
     res.json({ success: true });
+});
+
+app.post("/upload-avatar", upload.single("avatar"), async (req, res) => {
+    const username = req.body.username;
+    const file = req.file;
+
+    if (!file) {
+        return res.status(400).json({
+            error: "Aucun fichier"
+        });
+    }
+
+    const fileName = `${username}-${Date.now()}.png`;
+
+    await supabase.storage
+        .from("avatars")
+        .upload(fileName, file.buffer, {
+            contentType: file.mimetype
+        });
+
+    const {
+        data: { publicUrl }
+    } = supabase.storage
+        .from("avatars")
+        .getPublicUrl(fileName);
+
+    await supabase
+        .from("users")
+        .update({ avatar: publicUrl })
+        .eq("username", username);
+
+    res.json({ avatar: publicUrl });
 });
 
 io.on("connection", socket => {
-    socket.emit("load messages", messages);
-    socket.emit("online users", onlineUsers);
-
-    socket.on("user connected", username => {
-        if (!onlineUsers.includes(username)) {
-            onlineUsers.push(username);
-        }
-
-        io.emit("online users", onlineUsers);
-    });
-
     socket.on("chat message", msg => {
-        messages.push(msg);
-        saveData(messagesFile, messages);
-
         io.emit("chat message", msg);
-    });
-
-    socket.on("disconnect", () => {
-        io.emit("online users", onlineUsers);
     });
 });
 
-server.listen(3000, () => {
-    console.log("Serveur lancé sur port 3000");
+const PORT = process.env.PORT || 3000;
+
+server.listen(PORT, () => {
+    console.log("Serveur lancé sur port " + PORT);
 });

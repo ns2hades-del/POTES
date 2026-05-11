@@ -2,100 +2,66 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Chat privé - POTES</title>
-    <link rel="icon" href="logo-dark.png">
+    <title>Chat privé</title>
     <link rel="stylesheet" href="style.css">
+    <script src="/socket.io/socket.io.js"></script>
 </head>
 <body>
 
-<header>
-    <h1 class="logo-title">POTES</h1>
-</header>
-
 <div class="container">
+    <h1 class="logo-title">POTES</h1>
+
     <div class="card">
-        <h2 id="chat-title">Chat privé</h2>
+        <h2 id="chatTitle"></h2>
 
         <div id="messages"></div>
 
-        <input type="text" id="messageInput" placeholder="Écris un message">
+        <input id="messageInput" placeholder="Écrire un message">
         <button onclick="sendMessage()">Envoyer</button>
-
-        <br><br>
-
-        <a href="home.html">
-            <button>Retour</button>
-        </a>
     </div>
 </div>
-
-<script src="/socket.io/socket.io.js"></script>
 
 <script>
 const socket = io();
 
-const currentUser = localStorage.getItem("username");
-const targetUser = localStorage.getItem("chatUser");
+const username = localStorage.getItem("username");
+const chatUser = localStorage.getItem("chatUser");
 
-document.getElementById("chat-title").innerText =
-    "Chat avec " + targetUser;
+document.getElementById("chatTitle").innerText =
+    "Discussion avec " + chatUser;
+
+socket.emit("user connected", username);
+
+socket.on("chat message", msg => {
+    const currentUser = localStorage.getItem("username");
+    const activeUser = localStorage.getItem("chatUser");
+
+    const isRelevant =
+        (msg.from === currentUser && msg.to === activeUser) ||
+        (msg.from === activeUser && msg.to === currentUser);
+
+    if (!isRelevant) return;
+
+    const div = document.createElement("div");
+    div.className = "message";
+    div.innerHTML = "<strong>" + msg.from + ":</strong> " + msg.text;
+
+    document.getElementById("messages").appendChild(div);
+});
 
 function sendMessage() {
     const input = document.getElementById("messageInput");
+    const text = input.value.trim();
 
-    if (!input.value.trim()) return;
+    if (!text) return;
 
-    const msg = {
-        type: "private",
-        from: currentUser,
-        to: targetUser,
-        text: input.value
-    };
-
-    socket.emit("chat message", msg);
-    input.value = "";
-}
-
-socket.on("load messages", messages => {
-    document.getElementById("messages").innerHTML = "";
-
-    messages.forEach(msg => {
-        if (
-            msg.type === "private" &&
-            (
-                (msg.from === currentUser && msg.to === targetUser) ||
-                (msg.from === targetUser && msg.to === currentUser)
-            )
-        ) {
-            displayMessage(msg);
-        }
+    socket.emit("chat message", {
+        from: username,
+        to: chatUser,
+        text
     });
-});
 
-socket.on("chat message", msg => {
-    if (
-        msg.type === "private" &&
-        (
-            (msg.from === currentUser && msg.to === targetUser) ||
-            (msg.from === targetUser && msg.to === currentUser)
-        )
-    ) {
-        displayMessage(msg);
-    }
-});
-
-function displayMessage(msg) {
-    const div = document.createElement("div");
-
-    div.className =
-        msg.from === currentUser
-            ? "message-self"
-            : "message-other";
-
-    div.innerHTML =
-        `<div class="message-bubble">${msg.text}</div>`;
-
-    document.getElementById("messages").appendChild(div);
+    input.value = "";
 }
 </script>
 

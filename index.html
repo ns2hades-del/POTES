@@ -3,22 +3,41 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>POTES</title>
+    <title>POTES V2</title>
     <link rel="icon" href="logo-dark.png">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-    <div class="container">
-        <img src="logo-light.png" alt="Logo POTES" width="140">
+<div class="container">
+    <h1 class="logo-title">POTES</h1>
 
-        <h1>POTES</h1>
-        <p>Chat entre amis</p>
+    <div class="card">
+        <h2>Connexion / Inscription</h2>
 
-        <a href="login.html">
-            <button>Commencer</button>
-        </a>
+        <input
+            type="text"
+            id="username"
+            placeholder="Pseudo unique"
+        >
+
+        <input
+            type="password"
+            id="password"
+            placeholder="Mot de passe"
+        >
+
+        <button onclick="register()">
+            Créer un compte
+        </button>
+
+        <button onclick="login()">
+            Se connecter
+        </button>
     </div>
+</div>
+
+<script src="script.js"></script>
 
 </body>
 </html>

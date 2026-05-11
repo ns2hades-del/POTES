@@ -2,33 +2,46 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Profil - POTES</title>
+    <title>Profil</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-    <div class="container">
-        <img src="logo-light.png" alt="Logo POTES" width="120">
+<div class="container">
+    <h1 class="logo-title">POTES</h1>
 
-        <h2>Mon Profil</h2>
+    <div class="card">
+        <h2>Mon profil</h2>
 
-        <div class="profile-card">
-            <p><strong>Pseudo :</strong> <span id="profileUsername"></span></p>
-            <p><strong>Statut :</strong> En ligne 🟢</p>
-        </div>
+        <img id="preview" class="avatar">
 
-        <br>
-
-        <a href="home.html">
-            <button>Retour</button>
-        </a>
+        <input type="file" id="avatarInput">
+        <button onclick="uploadAvatar()">Changer photo</button>
     </div>
+</div>
 
-    <script>
-        const username = localStorage.getItem("username");
-        document.getElementById("profileUsername").textContent = username || "Utilisateur";
-    </script>
+<script>
+async function uploadAvatar() {
+    const file = document.getElementById("avatarInput").files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append("avatar", file);
+    formData.append(
+        "username",
+        localStorage.getItem("username")
+    );
+
+    const res = await fetch("/upload-avatar", {
+        method: "POST",
+        body: formData
+    });
+
+    const data = await res.json();
+
+    document.getElementById("preview").src = data.avatar;
+}
+</script>
 
 </body>
 </html>
