@@ -19,6 +19,7 @@
         <h2 id="chatTitle" style="font-size: 1.2rem; border-bottom: 1px solid var(--glass-border); padding-bottom: 15px;"></h2>
 
         <div id="messages"></div>
+        <div id="typingIndicator" style="font-size: 12px; color: var(--text-secondary); margin-bottom: 10px; height: 18px;"></div>
 
         <div style="display: flex; gap: 10px; align-items: center;">
             <input id="messageInput" placeholder="Écrivez un message..." style="margin: 0;">
@@ -72,6 +73,30 @@ function addMessage(msg) {
 
     document.getElementById("messages").appendChild(div);
 }
+
+let typingTimeout;
+const input = document.getElementById("messageInput");
+
+input.addEventListener("input", () => {
+    socket.emit("typing", { from: username, to: chatUser });
+    
+    clearTimeout(typingTimeout);
+    typingTimeout = setTimeout(() => {
+        socket.emit("stop typing", { from: username, to: chatUser });
+    }, 2000);
+});
+
+socket.on("typing", (data) => {
+    if (data.from === chatUser && data.to === username) {
+        document.getElementById("typingIndicator").innerText = `${chatUser} est en train d'écrire...`;
+    }
+});
+
+socket.on("stop typing", (data) => {
+    if (data.from === chatUser && data.to === username) {
+        document.getElementById("typingIndicator").innerText = "";
+    }
+});
 
 function sendMessage() {
     const input = document.getElementById("messageInput");
