@@ -16,7 +16,7 @@
 
         <div id="messages"></div>
 
-        <input id="messageInput" placeholder="Écrire un message">
+        <input id="messageInput" placeholder="Message">
         <button onclick="sendMessage()">Envoyer</button>
     </div>
 </div>
@@ -30,38 +30,52 @@ const chatUser = localStorage.getItem("chatUser");
 document.getElementById("chatTitle").innerText =
     "Discussion avec " + chatUser;
 
-socket.emit("user connected", username);
-
-socket.on("chat message", msg => {
-    const currentUser = localStorage.getItem("username");
-    const activeUser = localStorage.getItem("chatUser");
-
-    const isRelevant =
-        (msg.from === currentUser && msg.to === activeUser) ||
-        (msg.from === activeUser && msg.to === currentUser);
-
-    if (!isRelevant) return;
-
-    const div = document.createElement("div");
-    div.className = "message";
-    div.innerHTML = "<strong>" + msg.from + ":</strong> " + msg.text;
-
-    document.getElementById("messages").appendChild(div);
+fetch(`/messages/${username}/${chatUser}`)
+.then(res => res.json())
+.then(messages => {
+    messages.forEach(msg => {
+        addMessage({
+            from: msg.from_user,
+            text: msg.text
+        });
+    });
 });
 
+socket.on("chat message", msg => {
+    const valid =
+        (msg.from === username && msg.to === chatUser) ||
+        (msg.from === chatUser && msg.to === username);
+
+    if (!valid) return;
+
+    addMessage(msg);
+});
+
+function addMessage(msg) {
+    const div = document.createElement("div");
+    div.className = "message";
+    div.innerHTML =
+        "<strong>" + msg.from + ":</strong> " + msg.text;
+
+    document.getElementById("messages")
+        .appendChild(div);
+}
+
 function sendMessage() {
-    const input = document.getElementById("messageInput");
-    const text = input.value.trim();
+    const text = document
+        .getElementById("messageInput")
+        .value
+        .trim();
 
     if (!text) return;
 
     socket.emit("chat message", {
         from: username,
         to: chatUser,
-        text
+        text: text
     });
 
-    input.value = "";
+    document.getElementById("messageInput").value = "";
 }
 </script>
 

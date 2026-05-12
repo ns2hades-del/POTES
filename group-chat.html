@@ -16,14 +16,8 @@
 
         <div id="messages"></div>
 
-        <input id="messageInput" placeholder="Écrire message">
+        <input id="messageInput" placeholder="Message">
         <button onclick="sendMessage()">Envoyer</button>
-    </div>
-
-    <div class="card">
-        <button onclick="window.location.href='group.html'">
-            Retour groupes
-        </button>
     </div>
 </div>
 
@@ -36,9 +30,23 @@ const username = localStorage.getItem("username");
 document.getElementById("groupTitle").innerText =
     "Groupe : " + group;
 
+fetch("/group-messages/" + group)
+.then(res => res.json())
+.then(messages => {
+    messages.forEach(msg => {
+        addMessage({
+            from: msg.from_user,
+            text: msg.text
+        });
+    });
+});
+
 socket.on("chat message", msg => {
     if (msg.group !== group) return;
+    addMessage(msg);
+});
 
+function addMessage(msg) {
     const div = document.createElement("div");
     div.className = "message";
     div.innerHTML =
@@ -46,11 +54,13 @@ socket.on("chat message", msg => {
 
     document.getElementById("messages")
         .appendChild(div);
-});
+}
 
 function sendMessage() {
-    const input = document.getElementById("messageInput");
-    const text = input.value.trim();
+    const text = document
+        .getElementById("messageInput")
+        .value
+        .trim();
 
     if (!text) return;
 
@@ -60,7 +70,7 @@ function sendMessage() {
         text: text
     });
 
-    input.value = "";
+    document.getElementById("messageInput").value = "";
 }
 </script>
 
