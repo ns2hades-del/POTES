@@ -9,18 +9,22 @@
 <body>
 
 <div class="container">
-    <h2>Discussion générale</h2>
+    <h1 class="logo-title">POTES</h1>
 
-    <div id="messages"></div>
+    <div class="nav-bar">
+        <button class="secondary" onclick="window.location.href='home.html'">Retour</button>
+    </div>
 
-    <input type="text" id="messageInput" placeholder="Écris un message">
-    <button onclick="sendGlobalMessage()">Envoyer</button>
+    <div class="card">
+        <h2 style="font-size: 1.2rem; border-bottom: 1px solid var(--glass-border); padding-bottom: 15px;">Discussion Générale</h2>
 
-    <br><br>
+        <div id="messages"></div>
 
-    <a href="home.html">
-        <button>Retour</button>
-    </a>
+        <div style="display: flex; gap: 10px; align-items: center;">
+            <input type="text" id="messageInput" placeholder="Écrivez un message public..." style="margin: 0;">
+            <button onclick="sendGlobalMessage()" style="margin: 0; width: auto; padding: 14px 25px;">Envoyer</button>
+        </div>
+    </div>
 </div>
 
 <script src="/socket.io/socket.io.js"></script>

@@ -13,12 +13,13 @@
     <h1 class="logo-title">POTES</h1>
 
     <div class="card">
-        <h2>Connexion / Inscription</h2>
+        <h2>Bienvenue</h2>
+        <p style="color: var(--text-secondary); margin-bottom: 20px;">Connectez-vous pour discuter avec vos amis.</p>
 
         <input
             type="text"
             id="username"
-            placeholder="Pseudo unique"
+            placeholder="Nom d'utilisateur"
         >
 
         <input
@@ -27,12 +28,12 @@
             placeholder="Mot de passe"
         >
 
-        <button onclick="register()">
-            Créer un compte
-        </button>
-
         <button onclick="login()">
             Se connecter
+        </button>
+
+        <button class="secondary" onclick="window.location.href='register.html'">
+            Créer un compte
         </button>
     </div>
 </div>

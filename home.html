@@ -12,24 +12,14 @@
 
     <h1 class="logo-title">POTES</h1>
 
-    <div class="card">
-        <h2>Navigation</h2>
-
-        <button onclick="window.location.href='profile.html'">
-            Mon profil
-        </button>
-
-        <button onclick="window.location.href='group.html'">
-            Groupes
-        </button>
-
-        <button onclick="logout()">
-            Déconnexion
-        </button>
+    <div class="nav-bar">
+        <button onclick="window.location.href='profile.html'">Mon Profil</button>
+        <button onclick="window.location.href='group.html'">Groupes</button>
+        <button class="secondary" onclick="logout()">Quitter</button>
     </div>
 
     <div class="card">
-        <h2>Utilisateurs disponibles</h2>
+        <h2>Utilisateurs en ligne</h2>
         <div id="users"></div>
     </div>
 
@@ -60,14 +50,13 @@ fetch("/users")
         div.className = "user-card";
 
         div.innerHTML = `
-            <div style="display:flex;align-items:center;gap:12px;">
-                <img
-                    src="${user.avatar || 'logo-dark.png'}"
-                    class="avatar"
-                >
-                <div>
-                    <strong>${user.username}</strong>
-                </div>
+            <img
+                src="${user.avatar || 'logo-dark.png'}"
+                class="avatar"
+            >
+            <div>
+                <div style="font-weight: 600; font-size: 16px;">${user.username}</div>
+                <div style="font-size: 13px; color: var(--text-secondary);">Cliquez pour discuter</div>
             </div>
         `;
 

@@ -10,22 +10,21 @@
 <div class="container">
     <h1 class="logo-title">POTES</h1>
 
+    <div class="nav-bar">
+        <button class="secondary" onclick="window.location.href='home.html'">Retour</button>
+    </div>
+
     <div class="card">
         <h2>Créer un groupe</h2>
-
-        <input id="groupName" placeholder="Nom du groupe">
-        <button onclick="createGroup()">Créer</button>
+        <div style="display: flex; gap: 10px; align-items: center;">
+            <input id="groupName" placeholder="Nom du groupe" style="margin: 0;">
+            <button onclick="createGroup()" style="margin: 0; width: auto; padding: 14px 25px;">Créer</button>
+        </div>
     </div>
 
     <div class="card">
         <h2>Groupes disponibles</h2>
         <div id="groups"></div>
-    </div>
-
-    <div class="card">
-        <button onclick="window.location.href='home.html'">
-            Retour accueil
-        </button>
     </div>
 </div>
 

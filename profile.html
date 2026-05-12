@@ -10,36 +10,82 @@
 <div class="container">
     <h1 class="logo-title">POTES</h1>
 
-    <div class="card">
-        <h2>Mon profil</h2>
+    <div class="nav-bar">
+        <button class="secondary" onclick="window.location.href='home.html'">Retour</button>
+    </div>
 
-        <img id="preview" class="avatar">
+    <div class="card" style="text-align: center;">
+        <h2>Mon Profil</h2>
+        
+        <div style="position: relative; display: inline-block; margin-bottom: 20px;">
+            <img id="preview" class="avatar" src="logo-dark.png" style="width: 120px; height: 120px; border-radius: 30px;">
+            <div style="position: absolute; bottom: -5px; right: -5px; background: var(--accent); width: 30px; height: 30px; border-radius: 10px; display: flex; align-items: center; justify-content: center; border: 3px solid var(--bg-card);">
+                <span style="font-size: 14px;">✎</span>
+            </div>
+        </div>
 
-        <input type="file" id="avatarInput">
-        <button onclick="uploadAvatar()">Changer photo</button>
+        <div style="margin-bottom: 20px;">
+            <label for="avatarInput" class="secondary" style="display: block; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 10px; cursor: pointer; border: 1px solid rgba(255,255,255,0.1); margin-bottom: 10px;">
+                Sélectionner une photo
+            </label>
+            <input type="file" id="avatarInput" style="display: none;">
+            <button onclick="uploadAvatar()">Mettre à jour la photo</button>
+        </div>
+        
+        <div style="text-align: left; background: rgba(0,0,0,0.2); padding: 15px; border-radius: 15px; border: 1px solid var(--glass-border);">
+            <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 5px;">NOM D'UTILISATEUR</div>
+            <div id="displayUsername" style="font-weight: 600; font-size: 1.1rem;"></div>
+        </div>
     </div>
 </div>
 
 <script>
+const username = localStorage.getItem("username");
+document.getElementById("displayUsername").innerText = username;
+
+if (!username) {
+    window.location.href = "index.html";
+}
+
+// Charger les données du profil
+fetch("/users")
+.then(res => res.json())
+.then(users => {
+    const user = users.find(u => u.username === username);
+    if (user && user.avatar) {
+        document.getElementById("preview").src = user.avatar;
+    }
+});
+
 async function uploadAvatar() {
-    const file = document.getElementById("avatarInput").files[0];
-    if (!file) return;
+    const fileInput = document.getElementById("avatarInput");
+    const file = fileInput.files[0];
+    if (!file) {
+        alert("Veuillez d'abord sélectionner un fichier");
+        return;
+    }
 
     const formData = new FormData();
     formData.append("avatar", file);
-    formData.append(
-        "username",
-        localStorage.getItem("username")
-    );
+    formData.append("username", username);
 
-    const res = await fetch("/upload-avatar", {
-        method: "POST",
-        body: formData
-    });
+    try {
+        const res = await fetch("/upload-avatar", {
+            method: "POST",
+            body: formData
+        });
 
-    const data = await res.json();
-
-    document.getElementById("preview").src = data.avatar;
+        const data = await res.json();
+        if (data.success) {
+            document.getElementById("preview").src = data.avatar;
+            alert("Photo de profil mise à jour !");
+        } else {
+            alert(data.error || "Erreur lors de l'upload");
+        }
+    } catch (err) {
+        console.error(err);
+        alert("Erreur serveur");
+    }
 }
 </script>
 

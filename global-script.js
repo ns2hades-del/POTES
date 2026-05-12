@@ -34,7 +34,26 @@ socket.on("chat message", (msg) => {
 });
 
 function displayMessage(msg) {
-    const item = document.createElement("p");
-    item.innerHTML = `<strong>${msg.from} :</strong> ${msg.text}`;
-    messagesContainer.appendChild(item);
+    const messagesContainer = document.getElementById("messages");
+    const div = document.createElement("div");
+    const isSent = msg.from === currentUser;
+    
+    div.className = `message ${isSent ? 'message-sent' : 'message-received'}`;
+    
+    div.innerHTML = `
+        <div class="message-info">${isSent ? 'Moi' : msg.from}</div>
+        <div class="message-text">${msg.text}</div>
+    `;
+
+    messagesContainer.appendChild(div);
+    scrollToBottom();
 }
+
+function scrollToBottom() {
+    const container = document.getElementById("messages");
+    container.scrollTop = container.scrollHeight;
+}
+
+document.getElementById("messageInput").addEventListener("keypress", (e) => {
+    if (e.key === "Enter") sendGlobalMessage();
+});

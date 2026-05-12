@@ -4,13 +4,20 @@ const { Server } = require("socket.io");
 const multer = require("multer");
 const dotenv = require("dotenv");
 const { createClient } = require("@supabase/supabase-js");
+const WebSocket = require("ws");
+const cors = require("cors");
 
 dotenv.config();
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server);
+const io = new Server(server, {
+    cors: {
+        origin: "*",
+    }
+});
 
+app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(__dirname));
@@ -21,7 +28,12 @@ const upload = multer({
 
 const supabase = createClient(
     process.env.SUPABASE_URL,
-    process.env.SUPABASE_KEY
+    process.env.SUPABASE_KEY,
+    {
+        realtime: {
+            transport: WebSocket
+        }
+    }
 );
 
 /* USERS */
@@ -31,8 +43,8 @@ app.get("/users", async (req, res) => {
         .select("*");
 
     if (error) {
-        console.log(error);
-        return res.json([]);
+        console.error("Error fetching users:", error);
+        return res.status(500).json({ error: error.message });
     }
 
     res.json(data || []);
@@ -45,8 +57,8 @@ app.get("/groups", async (req, res) => {
         .select("*");
 
     if (error) {
-        console.log(error);
-        return res.json([]);
+        console.error("Error fetching groups:", error);
+        return res.status(500).json({ error: error.message });
     }
 
     res.json(data || []);
@@ -60,7 +72,7 @@ app.post("/create-group", async (req, res) => {
         .insert([{ name: groupName }]);
 
     if (error) {
-        console.log(error);
+        console.error("Error creating group:", error);
         return res.status(500).json({
             error: error.message
         });
@@ -82,8 +94,8 @@ app.get("/messages/:user1/:user2", async (req, res) => {
         .order("created_at", { ascending: true });
 
     if (error) {
-        console.log(error);
-        return res.json([]);
+        console.error("Error fetching private history:", error);
+        return res.status(500).json({ error: error.message });
     }
 
     res.json(data || []);
@@ -100,8 +112,8 @@ app.get("/group-messages/:group", async (req, res) => {
         .order("created_at", { ascending: true });
 
     if (error) {
-        console.log(error);
-        return res.json([]);
+        console.error("Error fetching group history:", error);
+        return res.status(500).json({ error: error.message });
     }
 
     res.json(data || []);
@@ -111,10 +123,15 @@ app.get("/group-messages/:group", async (req, res) => {
 app.post("/register", async (req, res) => {
     const { username, password } = req.body;
 
-    const { data: existing } = await supabase
+    const { data: existing, error: checkError } = await supabase
         .from("users")
         .select("*")
         .eq("username", username);
+
+    if (checkError) {
+        console.error("Error checking existing user:", checkError);
+        return res.status(500).json({ error: checkError.message });
+    }
 
     if (existing && existing.length > 0) {
         return res.status(400).json({
@@ -134,7 +151,7 @@ app.post("/register", async (req, res) => {
         ]);
 
     if (error) {
-        console.log(error);
+        console.error("Error registering user:", error);
         return res.status(500).json({
             error: error.message
         });
@@ -147,14 +164,14 @@ app.post("/register", async (req, res) => {
 app.post("/login", async (req, res) => {
     const { username, password } = req.body;
 
-    const { data } = await supabase
+    const { data, error } = await supabase
         .from("users")
         .select("*")
         .eq("username", username)
         .eq("password", password)
         .single();
 
-    if (!data) {
+    if (error || !data) {
         return res.status(400).json({
             error: "Identifiants incorrects"
         });
@@ -180,11 +197,16 @@ app.post("/upload-avatar", upload.single("avatar"), async (req, res) => {
 
         const fileName = `${username}-${Date.now()}`;
 
-        await supabase.storage
+        const { error: uploadError } = await supabase.storage
             .from("avatars")
             .upload(fileName, file.buffer, {
                 contentType: file.mimetype
             });
+
+        if (uploadError) {
+            console.error("Error uploading avatar:", uploadError);
+            return res.status(500).json({ error: "Erreur upload storage" });
+        }
 
         const {
             data: { publicUrl }
@@ -192,10 +214,15 @@ app.post("/upload-avatar", upload.single("avatar"), async (req, res) => {
             .from("avatars")
             .getPublicUrl(fileName);
 
-        await supabase
+        const { error: updateError } = await supabase
             .from("users")
             .update({ avatar: publicUrl })
             .eq("username", username);
+
+        if (updateError) {
+            console.error("Error updating user avatar:", updateError);
+            return res.status(500).json({ error: "Erreur mise à jour base" });
+        }
 
         res.json({
             success: true,
@@ -203,7 +230,7 @@ app.post("/upload-avatar", upload.single("avatar"), async (req, res) => {
         });
 
     } catch (err) {
-        console.log(err);
+        console.error("Unexpected error during avatar upload:", err);
         res.status(500).json({
             error: "Erreur upload"
         });
@@ -211,7 +238,30 @@ app.post("/upload-avatar", upload.single("avatar"), async (req, res) => {
 });
 
 /* SOCKET */
-io.on("connection", socket => {
+io.on("connection", async (socket) => {
+    console.log("A user connected:", socket.id);
+
+    // Load global history on connection
+    try {
+        const { data: messages, error } = await supabase
+            .from("messages")
+            .select("*")
+            .eq("to_user", "")
+            .eq("group_name", "")
+            .order("created_at", { ascending: true })
+            .limit(50);
+
+        if (!error && messages) {
+            socket.emit("load messages", messages.map(m => ({
+                type: "global",
+                from: m.from_user,
+                text: m.text
+            })));
+        }
+    } catch (err) {
+        console.error("Error loading global history:", err);
+    }
+
     socket.on("chat message", async msg => {
         const { error } = await supabase
             .from("messages")
@@ -224,9 +274,15 @@ io.on("connection", socket => {
                 }
             ]);
 
-        console.log("Insert message :", error || "OK");
+        if (error) {
+            console.error("Error saving message:", error);
+        }
 
         io.emit("chat message", msg);
+    });
+
+    socket.on("disconnect", () => {
+        console.log("User disconnected:", socket.id);
     });
 });
 

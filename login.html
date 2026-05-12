@@ -23,18 +23,11 @@
         <p>Pas encore de compte ? <a href="register.html">Créer un compte</a></p>
     </div>
 
+    <script src="script.js"></script>
     <script>
-        document.getElementById("loginForm").addEventListener("submit", function(e) {
+        document.getElementById("loginForm").addEventListener("submit", async function(e) {
             e.preventDefault();
-
-            const username = document.getElementById("username").value;
-            const savedUsername = localStorage.getItem("username");
-
-            if (username === savedUsername) {
-                window.location.href = "home.html";
-            } else {
-                alert("Utilisateur introuvable");
-            }
+            await login();
         });
     </script>
 
