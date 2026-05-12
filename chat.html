@@ -21,7 +21,27 @@
         <div id="messages"></div>
         <div id="typingIndicator" style="font-size: 12px; color: var(--text-secondary); margin-bottom: 10px; height: 18px;"></div>
 
+        <div id="emojiPicker" style="display: none; background: var(--bg-card); border: 1px solid var(--glass-border); border-radius: 12px; padding: 10px; margin-bottom: 10px; backdrop-filter: blur(12px); grid-template-columns: repeat(8, 1fr); gap: 5px;">
+            <span onclick="addEmoji('😀')" style="cursor: pointer; font-size: 20px;">😀</span>
+            <span onclick="addEmoji('😂')" style="cursor: pointer; font-size: 20px;">😂</span>
+            <span onclick="addEmoji('😍')" style="cursor: pointer; font-size: 20px;">😍</span>
+            <span onclick="addEmoji('😎')" style="cursor: pointer; font-size: 20px;">😎</span>
+            <span onclick="addEmoji('👍')" style="cursor: pointer; font-size: 20px;">👍</span>
+            <span onclick="addEmoji('🔥')" style="cursor: pointer; font-size: 20px;">🔥</span>
+            <span onclick="addEmoji('✨')" style="cursor: pointer; font-size: 20px;">✨</span>
+            <span onclick="addEmoji('🚀')" style="cursor: pointer; font-size: 20px;">🚀</span>
+            <span onclick="addEmoji('😢')" style="cursor: pointer; font-size: 20px;">😢</span>
+            <span onclick="addEmoji('😡')" style="cursor: pointer; font-size: 20px;">😡</span>
+            <span onclick="addEmoji('🙏')" style="cursor: pointer; font-size: 20px;">🙏</span>
+            <span onclick="addEmoji('🎉')" style="cursor: pointer; font-size: 20px;">🎉</span>
+            <span onclick="addEmoji('❤️')" style="cursor: pointer; font-size: 20px;">❤️</span>
+            <span onclick="addEmoji('😂')" style="cursor: pointer; font-size: 20px;">😂</span>
+            <span onclick="addEmoji('🤔')" style="cursor: pointer; font-size: 20px;">🤔</span>
+            <span onclick="addEmoji('👋')" style="cursor: pointer; font-size: 20px;">👋</span>
+        </div>
+
         <div style="display: flex; gap: 10px; align-items: center;">
+            <button onclick="toggleEmojiPicker()" style="margin: 0; width: auto; padding: 10px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);">😊</button>
             <input id="messageInput" placeholder="Écrivez un message..." style="margin: 0;">
             <button onclick="sendMessage()" style="margin: 0; width: auto; padding: 14px 25px;">Envoyer</button>
         </div>
@@ -99,6 +119,18 @@ socket.on("stop typing", (data) => {
         document.getElementById("typingIndicator").innerText = "";
     }
 });
+
+function toggleEmojiPicker() {
+    const picker = document.getElementById("emojiPicker");
+    picker.style.display = picker.style.display === "none" ? "grid" : "none";
+}
+
+function addEmoji(emoji) {
+    const input = document.getElementById("messageInput");
+    input.value += emoji;
+    input.focus();
+    toggleEmojiPicker();
+}
 
 function sendMessage() {
     const input = document.getElementById("messageInput");
