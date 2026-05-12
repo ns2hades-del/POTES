@@ -40,8 +40,16 @@
             <span onclick="addEmoji('👋')" style="cursor: pointer; font-size: 20px;">👋</span>
         </div>
 
-        <div style="display: flex; gap: 10px; align-items: center;">
+        <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 10px;">
             <button onclick="toggleEmojiPicker()" style="margin: 0; width: auto; padding: 10px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);">😊</button>
+            
+            <label for="imageInput" style="margin: 0; width: auto; padding: 10px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                📷
+            </label>
+            <input type="file" id="imageInput" accept="image/*" style="display: none;" onchange="sendImage()">
+
+            <button id="audioBtn" onclick="toggleRecording()" style="margin: 0; width: auto; padding: 10px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);">🎙️</button>
+
             <input id="messageInput" placeholder="Écrivez un message..." style="margin: 0;">
             <button onclick="sendMessage()" style="margin: 0; width: auto; padding: 14px 25px;">Envoyer</button>
         </div>
@@ -63,7 +71,10 @@ fetch(`/messages/${username}/${chatUser}`)
     messages.forEach(msg => {
         addMessage({
             from: msg.from_user,
-            text: msg.text
+            text: msg.text,
+            image: msg.image_url,
+            audio: msg.audio_url,
+            created_at: msg.created_at
         });
     });
     scrollToBottom();
@@ -88,12 +99,101 @@ function addMessage(msg) {
 
     div.className = `message ${isSent ? 'message-sent' : 'message-received'}`;
     
-    div.innerHTML = `
-        <div class="message-info">${isSent ? 'Moi' : msg.from} • ${time}</div>
-        <div class="message-text">${msg.text}</div>
-    `;
+    let content = `<div class="message-info">${isSent ? 'Moi' : msg.from} • ${time}</div>`;
+    
+    if (msg.image) {
+        content += `<img src="${msg.image}" style="max-width: 100%; border-radius: 10px; margin-top: 5px; display: block; cursor: pointer;" onclick="window.open('${msg.image}')">`;
+    }
+
+    if (msg.audio) {
+        content += `<audio src="${msg.audio}" controls style="max-width: 100%; margin-top: 5px; display: block;"></audio>`;
+    }
+    
+    if (msg.text) {
+        content += `<div class="message-text">${msg.text}</div>`;
+    }
+    
+    div.innerHTML = content;
 
     document.getElementById("messages").appendChild(div);
+}
+
+/* AUDIO RECORDING */
+let mediaRecorder;
+let audioChunks = [];
+let isRecording = false;
+
+async function toggleRecording() {
+    const btn = document.getElementById("audioBtn");
+    
+    if (!isRecording) {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorder = new MediaRecorder(stream);
+        audioChunks = [];
+
+        mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+        mediaRecorder.onstop = async () => {
+            const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+            const formData = new FormData();
+            formData.append("audio", audioBlob);
+
+            const res = await fetch("/upload-chat-audio", {
+                method: "POST",
+                body: formData
+            });
+
+            const data = await res.json();
+            if (data.success) {
+                socket.emit("chat message", {
+                    from: username,
+                    to: chatUser,
+                    audio: data.url,
+                    text: ""
+                });
+            }
+        };
+
+        mediaRecorder.start();
+        isRecording = true;
+        btn.innerText = "🛑";
+        btn.style.background = "rgba(255, 0, 0, 0.2)";
+    } else {
+        mediaRecorder.stop();
+        isRecording = false;
+        btn.innerText = "🎙️";
+        btn.style.background = "rgba(255, 255, 255, 0.05)";
+    }
+}
+
+async function sendImage() {
+    const fileInput = document.getElementById("imageInput");
+    const file = fileInput.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append("image", file);
+
+    try {
+        const res = await fetch("/upload-chat-image", {
+            method: "POST",
+            body: formData
+        });
+
+        const data = await res.json();
+        if (data.success) {
+            socket.emit("chat message", {
+                from: username,
+                to: chatUser,
+                image: data.url,
+                text: ""
+            });
+        }
+    } catch (err) {
+        console.error(err);
+        alert("Erreur lors de l'envoi de l'image");
+    }
+    
+    fileInput.value = "";
 }
 
 let typingTimeout;
