@@ -5,6 +5,7 @@
     <title>Chat privé</title>
     <link rel="stylesheet" href="style.css">
     <script src="/socket.io/socket.io.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
 </head>
 <body>
 
@@ -61,35 +62,87 @@ const socket = io();
 
 const username = localStorage.getItem("username");
 const chatUser = localStorage.getItem("chatUser");
+let secretKey = "";
+
+// Demander la permission pour les notifications
+if (Notification.permission !== "granted") {
+    Notification.requestPermission();
+}
+
+// Récupérer la clé de chiffrement
+fetch("/config")
+.then(res => res.json())
+.then(data => {
+    secretKey = data.secret;
+    loadHistory();
+});
 
 document.getElementById("chatTitle").innerText =
     "Discussion avec " + chatUser;
 
-fetch(`/messages/${username}/${chatUser}`)
-.then(res => res.json())
-.then(messages => {
-    messages.forEach(msg => {
-        addMessage({
-            from: msg.from_user,
-            text: msg.text,
-            image: msg.image_url,
-            audio: msg.audio_url,
-            created_at: msg.created_at
+function loadHistory() {
+    fetch(`/messages/${username}/${chatUser}`)
+    .then(res => res.json())
+    .then(messages => {
+        messages.forEach(msg => {
+            const decryptedText = decrypt(msg.text);
+            addMessage({
+                from: msg.from_user,
+                text: decryptedText,
+                image: msg.image_url,
+                audio: msg.audio_url,
+                created_at: msg.created_at
+            });
         });
+        scrollToBottom();
     });
-    scrollToBottom();
-});
+}
 
 socket.on("chat message", msg => {
     const valid =
         (msg.from === username && msg.to === chatUser) ||
         (msg.from === chatUser && msg.to === username);
 
-    if (!valid) return;
+    if (!valid) {
+        // Notification si le message n'est pas pour cette conversation
+        if (msg.to === username && document.hidden) {
+            showNotification(msg.from, decrypt(msg.text));
+        }
+        return;
+    }
 
-    addMessage(msg);
+    const decryptedMsg = { ...msg, text: decrypt(msg.text) };
+    addMessage(decryptedMsg);
     scrollToBottom();
+
+    if (document.hidden && msg.from === chatUser) {
+        showNotification(msg.from, decryptedMsg.text);
+    }
 });
+
+function encrypt(text) {
+    if (!text) return "";
+    return CryptoJS.AES.encrypt(text, secretKey).toString();
+}
+
+function decrypt(ciphertext) {
+    if (!ciphertext) return "";
+    try {
+        const bytes = CryptoJS.AES.decrypt(ciphertext, secretKey);
+        return bytes.toString(CryptoJS.enc.Utf8) || ciphertext; // Retourne l'original si échec (ex: anciens messages)
+    } catch (e) {
+        return ciphertext;
+    }
+}
+
+function showNotification(from, text) {
+    if (Notification.permission === "granted") {
+        new Notification(`Nouveau message de ${from}`, {
+            body: text || "Image ou Audio",
+            icon: "logo-dark.png"
+        });
+    }
+}
 
 function addMessage(msg) {
     const div = document.createElement("div");
@@ -99,7 +152,7 @@ function addMessage(msg) {
 
     div.className = `message ${isSent ? 'message-sent' : 'message-received'}`;
     
-    let content = `<div class="message-info">${isSent ? 'Moi' : msg.from} • ${time}</div>`;
+    let content = `<div class="message-info">${isSent ? 'Moi' : msg.from} • ${time} <span style="font-size: 10px; opacity: 0.5;">🔒</span></div>`;
     
     if (msg.image) {
         content += `<img src="${msg.image}" style="max-width: 100%; border-radius: 10px; margin-top: 5px; display: block; cursor: pointer;" onclick="window.open('${msg.image}')">`;
@@ -148,7 +201,7 @@ async function toggleRecording() {
                     from: username,
                     to: chatUser,
                     audio: data.url,
-                    text: ""
+                    text: encrypt("")
                 });
             }
         };
@@ -185,7 +238,7 @@ async function sendImage() {
                 from: username,
                 to: chatUser,
                 image: data.url,
-                text: ""
+                text: encrypt("")
             });
         }
     } catch (err) {
@@ -241,7 +294,7 @@ function sendMessage() {
     socket.emit("chat message", {
         from: username,
         to: chatUser,
-        text: text
+        text: encrypt(text)
     });
 
     input.value = "";
