@@ -5,6 +5,7 @@
     <title>Chat Groupe</title>
     <link rel="stylesheet" href="style.css">
     <script src="/socket.io/socket.io.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
 </head>
 <body>
 
@@ -32,36 +33,90 @@ const socket = io();
 
 const group = localStorage.getItem("activeGroup");
 const username = localStorage.getItem("username");
+let secretKey = "";
+
+// Notifications
+if (Notification.permission !== "granted") {
+    Notification.requestPermission();
+}
+
+// Chiffrement
+fetch("/config")
+.then(res => res.json())
+.then(data => {
+    secretKey = data.secret;
+    loadHistory();
+});
 
 document.getElementById("groupTitle").innerText =
     "Groupe : " + group;
 
-fetch("/group-messages/" + group)
-.then(res => res.json())
-.then(messages => {
-    messages.forEach(msg => {
-        addMessage({
-            from: msg.from_user,
-            text: msg.text
+function loadHistory() {
+    fetch("/group-messages/" + group)
+    .then(res => res.json())
+    .then(messages => {
+        messages.forEach(msg => {
+            addMessage({
+                from: msg.from_user,
+                text: decrypt(msg.text),
+                created_at: msg.created_at
+            });
         });
+        scrollToBottom();
     });
-    scrollToBottom();
-});
+}
 
 socket.on("chat message", msg => {
-    if (msg.group !== group) return;
-    addMessage(msg);
+    if (msg.group !== group) {
+        if (document.hidden && msg.from !== username) {
+             // On pourrait filtrer si l'user est dans le groupe, mais ici on simplifie
+        }
+        return;
+    }
+    
+    const decryptedText = decrypt(msg.text);
+    addMessage({ ...msg, text: decryptedText });
     scrollToBottom();
+
+    if (document.hidden && msg.from !== username) {
+        showNotification(msg.from, decryptedText, `Groupe: ${group}`);
+    }
 });
+
+function encrypt(text) {
+    if (!text || !secretKey) return text;
+    return CryptoJS.AES.encrypt(text, secretKey).toString();
+}
+
+function decrypt(ciphertext) {
+    if (!ciphertext || !secretKey) return ciphertext;
+    try {
+        const bytes = CryptoJS.AES.decrypt(ciphertext, secretKey);
+        return bytes.toString(CryptoJS.enc.Utf8) || ciphertext;
+    } catch (e) {
+        return ciphertext;
+    }
+}
+
+function showNotification(from, text, title) {
+    if (Notification.permission === "granted") {
+        new Notification(title || `Message de ${from}`, {
+            body: text,
+            icon: "logo-dark.png"
+        });
+    }
+}
 
 function addMessage(msg) {
     const div = document.createElement("div");
     const isSent = msg.from === username;
     
+    const time = msg.created_at ? new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
     div.className = `message ${isSent ? 'message-sent' : 'message-received'}`;
     
     div.innerHTML = `
-        <div class="message-info">${isSent ? 'Moi' : msg.from}</div>
+        <div class="message-info">${isSent ? 'Moi' : msg.from} • ${time} <span style="font-size: 10px; opacity: 0.5;">🔒</span></div>
         <div class="message-text">${msg.text}</div>
     `;
 
@@ -77,7 +132,7 @@ function sendMessage() {
     socket.emit("chat message", {
         from: username,
         group: group,
-        text: text
+        text: encrypt(text)
     });
 
     input.value = "";

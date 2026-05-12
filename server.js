@@ -51,6 +51,10 @@ app.get("/users", async (req, res) => {
 });
 
 /* GROUPS */
+app.get("/config", (req, res) => {
+    res.json({ secret: process.env.SECRET_KEY });
+});
+
 app.get("/groups", async (req, res) => {
     const { data, error } = await supabase
         .from("groups")
