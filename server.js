@@ -237,6 +237,30 @@ app.post("/upload-avatar", upload.single("avatar"), async (req, res) => {
     }
 });
 
+/* CHAT IMAGES */
+app.post("/upload-chat-image", upload.single("image"), async (req, res) => {
+    try {
+        const file = req.file;
+        if (!file) return res.status(400).json({ error: "Aucun fichier" });
+
+        const fileName = `chat-${Date.now()}`;
+        const { error: uploadError } = await supabase.storage
+            .from("chat-images")
+            .upload(fileName, file.buffer, { contentType: file.mimetype });
+
+        if (uploadError) return res.status(500).json({ error: "Erreur upload storage" });
+
+        const { data: { publicUrl } } = supabase.storage
+            .from("chat-images")
+            .getPublicUrl(fileName);
+
+        res.json({ success: true, url: publicUrl });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Erreur upload" });
+    }
+});
+
 /* SOCKET */
 io.on("connection", async (socket) => {
     console.log("A user connected:", socket.id);
@@ -255,7 +279,9 @@ io.on("connection", async (socket) => {
             socket.emit("load messages", messages.map(m => ({
                 type: "global",
                 from: m.from_user,
-                text: m.text
+                text: m.text,
+                image: m.image_url,
+                created_at: m.created_at
             })));
         }
     } catch (err) {
@@ -270,7 +296,8 @@ io.on("connection", async (socket) => {
                     from_user: msg.from,
                     to_user: msg.to || "",
                     group_name: msg.group || "",
-                    text: msg.text
+                    text: msg.text || "",
+                    image_url: msg.image || ""
                 }
             ]);
 
