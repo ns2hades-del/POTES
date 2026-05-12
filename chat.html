@@ -19,8 +19,29 @@
         <h2 id="chatTitle" style="font-size: 1.2rem; border-bottom: 1px solid var(--glass-border); padding-bottom: 15px;"></h2>
 
         <div id="messages"></div>
+        <div id="typingIndicator" style="font-size: 12px; color: var(--text-secondary); margin-bottom: 10px; height: 18px;"></div>
+
+        <div id="emojiPicker" style="display: none; background: var(--bg-card); border: 1px solid var(--glass-border); border-radius: 12px; padding: 10px; margin-bottom: 10px; backdrop-filter: blur(12px); grid-template-columns: repeat(8, 1fr); gap: 5px;">
+            <span onclick="addEmoji('😀')" style="cursor: pointer; font-size: 20px;">😀</span>
+            <span onclick="addEmoji('😂')" style="cursor: pointer; font-size: 20px;">😂</span>
+            <span onclick="addEmoji('😍')" style="cursor: pointer; font-size: 20px;">😍</span>
+            <span onclick="addEmoji('😎')" style="cursor: pointer; font-size: 20px;">😎</span>
+            <span onclick="addEmoji('👍')" style="cursor: pointer; font-size: 20px;">👍</span>
+            <span onclick="addEmoji('🔥')" style="cursor: pointer; font-size: 20px;">🔥</span>
+            <span onclick="addEmoji('✨')" style="cursor: pointer; font-size: 20px;">✨</span>
+            <span onclick="addEmoji('🚀')" style="cursor: pointer; font-size: 20px;">🚀</span>
+            <span onclick="addEmoji('😢')" style="cursor: pointer; font-size: 20px;">😢</span>
+            <span onclick="addEmoji('😡')" style="cursor: pointer; font-size: 20px;">😡</span>
+            <span onclick="addEmoji('🙏')" style="cursor: pointer; font-size: 20px;">🙏</span>
+            <span onclick="addEmoji('🎉')" style="cursor: pointer; font-size: 20px;">🎉</span>
+            <span onclick="addEmoji('❤️')" style="cursor: pointer; font-size: 20px;">❤️</span>
+            <span onclick="addEmoji('😂')" style="cursor: pointer; font-size: 20px;">😂</span>
+            <span onclick="addEmoji('🤔')" style="cursor: pointer; font-size: 20px;">🤔</span>
+            <span onclick="addEmoji('👋')" style="cursor: pointer; font-size: 20px;">👋</span>
+        </div>
 
         <div style="display: flex; gap: 10px; align-items: center;">
+            <button onclick="toggleEmojiPicker()" style="margin: 0; width: auto; padding: 10px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);">😊</button>
             <input id="messageInput" placeholder="Écrivez un message..." style="margin: 0;">
             <button onclick="sendMessage()" style="margin: 0; width: auto; padding: 14px 25px;">Envoyer</button>
         </div>
@@ -63,14 +84,52 @@ function addMessage(msg) {
     const div = document.createElement("div");
     const isSent = msg.from === username;
     
+    const time = msg.created_at ? new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
     div.className = `message ${isSent ? 'message-sent' : 'message-received'}`;
     
     div.innerHTML = `
-        <div class="message-info">${isSent ? 'Moi' : msg.from}</div>
+        <div class="message-info">${isSent ? 'Moi' : msg.from} • ${time}</div>
         <div class="message-text">${msg.text}</div>
     `;
 
     document.getElementById("messages").appendChild(div);
+}
+
+let typingTimeout;
+const input = document.getElementById("messageInput");
+
+input.addEventListener("input", () => {
+    socket.emit("typing", { from: username, to: chatUser });
+    
+    clearTimeout(typingTimeout);
+    typingTimeout = setTimeout(() => {
+        socket.emit("stop typing", { from: username, to: chatUser });
+    }, 2000);
+});
+
+socket.on("typing", (data) => {
+    if (data.from === chatUser && data.to === username) {
+        document.getElementById("typingIndicator").innerText = `${chatUser} est en train d'écrire...`;
+    }
+});
+
+socket.on("stop typing", (data) => {
+    if (data.from === chatUser && data.to === username) {
+        document.getElementById("typingIndicator").innerText = "";
+    }
+});
+
+function toggleEmojiPicker() {
+    const picker = document.getElementById("emojiPicker");
+    picker.style.display = picker.style.display === "none" ? "grid" : "none";
+}
+
+function addEmoji(emoji) {
+    const input = document.getElementById("messageInput");
+    input.value += emoji;
+    input.focus();
+    toggleEmojiPicker();
 }
 
 function sendMessage() {
