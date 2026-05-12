@@ -38,10 +38,12 @@ function displayMessage(msg) {
     const div = document.createElement("div");
     const isSent = msg.from === currentUser;
     
+    const time = msg.created_at ? new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
     div.className = `message ${isSent ? 'message-sent' : 'message-received'}`;
     
     div.innerHTML = `
-        <div class="message-info">${isSent ? 'Moi' : msg.from}</div>
+        <div class="message-info">${isSent ? 'Moi' : msg.from} • ${time}</div>
         <div class="message-text">${msg.text}</div>
     `;
 
